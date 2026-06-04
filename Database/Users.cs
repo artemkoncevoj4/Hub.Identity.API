@@ -14,4 +14,4 @@ public class Users
 
 }
 
-public record UserDto(int Id, string Login, int AccessLevel);
+public record UserDto(int Id, string Login);

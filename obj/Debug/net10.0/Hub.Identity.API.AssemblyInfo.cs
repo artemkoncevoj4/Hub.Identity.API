@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Hub.Identity.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f3b6a3e4f83c30ca0adaf1bb737fe5daf2982f37")]
 [assembly: System.Reflection.AssemblyProductAttribute("Hub.Identity.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Hub.Identity.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
