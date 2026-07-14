@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using DotNetEnv;
-
+using Confluent.Kafka;
 Env.Load();
 
 
@@ -16,7 +16,7 @@ if (string.IsNullOrEmpty(jwtKey))
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "FileVaultApi";
 var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "FileVaultFront";
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
+var kafkaBootstrap = Environment.GetEnvironmentVariable("Kafka__BootstrapServers") ?? "kafka:9092";
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<Identity.Database.AppDbContext>(options =>
@@ -47,7 +47,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSingleton<Identity.Database.IPasswordHasher, Identity.Database.BCryptHasher>();
-
+builder.Services.AddSingleton<IProducer<Null, string>>(sp =>
+{
+    var config = new ProducerConfig { BootstrapServers = kafkaBootstrap };
+    return new ProducerBuilder<Null, string>(config).Build();
+});
 
 
 

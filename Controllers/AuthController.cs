@@ -6,6 +6,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Confluent.Kafka;        
+using System.Text.Json;         
 
 namespace Identity.Controllers;
 
@@ -16,12 +18,16 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IPasswordHasher _hasher;
     private readonly IConfiguration _config;
+    private readonly IProducer<Null, string> _producer;
+    private readonly string _kafkaTopic;
 
-    public AuthController(AppDbContext db, IPasswordHasher hasher, IConfiguration config)
+    public AuthController(AppDbContext db, IPasswordHasher hasher, IConfiguration config, IProducer<Null, string> producer)
     {
         _db = db;
         _hasher = hasher;
         _config = config;
+        _producer = producer;
+        _kafkaTopic = _config["Kafka:Topic"] ?? "user-events";
     }
 
     [AllowAnonymous]
@@ -71,6 +77,33 @@ public class AuthController : ControllerBase
     {
         Response.Cookies.Delete("jwtToken");
         return Ok("Logged out successfully");
+    }
+    [Authorize]
+    [HttpDelete("account")]
+    public async Task<IActionResult> DeleteAccount()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
+            return Unauthorized("Invalid user identity");
+        
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound("User not found");
+        
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+
+        try
+        {
+            var eventMessage = JsonSerializer.Serialize(new { EventType = "UserDeleted", UserId = userId});
+            await _producer.ProduceAsync(_kafkaTopic, new Message<Null, string> { Value = eventMessage });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Account deleted but failed to notify other services. Error: {ex}");
+        }
+        Response.Cookies.Delete("jwtToken");
+        return Ok(new {message  = "Account deleted successfully"});
     }
 
     private string GenerateJwtToken(Users user)
